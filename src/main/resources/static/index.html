@@ -166,7 +166,6 @@
       <p>Screen resumes instantly with AI. Every account gets <strong>5 free checks</strong> to get started.</p>
       <div class="login-divider"><span>Continue with Google</span></div>
 
-      <!-- Google Sign-In button rendered by GSI -->
       <div id="g_id_onload"
         data-client_id="795752413880-lold1i5ndeb6am17350rm25qdf0e78s3.apps.googleusercontent.com"
         data-callback="handleGoogleLogin"
@@ -279,12 +278,15 @@
 </div>
 
 <script>
+// ─── Backend URL ──────────────────────────────────────────
+const API_BASE = 'https://ai-integrated-resume-parser-production.up.railway.app';
+
 // ─── State ───────────────────────────────────────────────
 let authToken   = localStorage.getItem('tap_token') || null;
 let parsedData  = null;
 let resumeFile  = null;
 let jdFile      = null;
-const RAZORPAY_KEY = 'rzp_test_XXXXXXXXXX'; // ← replace with your key
+const RAZORPAY_KEY = 'rzp_test_XXXXXXXXXX'; // ← replace with your actual Razorpay key
 
 // ─── Init: restore session ────────────────────────────────
 window.addEventListener('load', () => {
@@ -293,7 +295,7 @@ window.addEventListener('load', () => {
 
 async function restoreSession() {
   try {
-    const res = await fetch('/api/auth/me', {
+    const res = await fetch(API_BASE + '/api/auth/me', {
       headers: { 'Authorization': 'Bearer ' + authToken }
     });
     if (!res.ok) { signOut(); return; }
@@ -305,7 +307,7 @@ async function restoreSession() {
 // ─── Google Login ─────────────────────────────────────────
 async function handleGoogleLogin(response) {
   try {
-    const res = await fetch('/api/auth/google', {
+    const res = await fetch(API_BASE + '/api/auth/google', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ idToken: response.credential })
@@ -321,21 +323,21 @@ async function handleGoogleLogin(response) {
 }
 
 function showApp(data) {
-	  document.getElementById('loginGate').style.display = 'none';
-	  document.getElementById('appSec').style.display    = 'block';
-	  document.getElementById('userPic').src             = data.picture || '';
-	  document.getElementById('userName').textContent    = data.name   || data.email;
+  document.getElementById('loginGate').style.display = 'none';
+  document.getElementById('appSec').style.display    = 'block';
+  document.getElementById('userPic').src             = data.picture || '';
+  document.getElementById('userName').textContent    = data.name   || data.email;
 
-	  // Show ∞ for whitelisted account instead of a number
-	  if (data.email === 'tthejaskumar79@gmail.com') {
-	    const pill = document.getElementById('checksPill');
-	    pill.textContent = '∞ unlimited';
-	    pill.className   = 'checks-pill checks-ok';
-	    document.getElementById('parseBtn').disabled = false;
-	  } else {
-	    updateChecks(data.freeChecks, data.paidChecks);
-	  }
-	}
+  // Show ∞ for whitelisted account instead of a number
+  if (data.email === 'tthejaskumar79@gmail.com') {
+    const pill = document.getElementById('checksPill');
+    pill.textContent = '∞ unlimited';
+    pill.className   = 'checks-pill checks-ok';
+    document.getElementById('parseBtn').disabled = false;
+  } else {
+    updateChecks(data.freeChecks, data.paidChecks);
+  }
+}
 
 function signOut() {
   authToken = null;
@@ -365,7 +367,7 @@ function updateChecks(free, paid) {
 // ─── Razorpay payment ─────────────────────────────────────
 async function startPayment() {
   try {
-    const order = await fetch('/api/payment/create-order', {
+    const order = await fetch(API_BASE + '/api/payment/create-order', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + authToken }
     }).then(r => r.json());
@@ -380,7 +382,7 @@ async function startPayment() {
       prefill:     { name: order.name, email: order.email },
       theme:       { color: '#185FA5' },
       handler: async function(response) {
-        const verify = await fetch('/api/payment/verify', {
+        const verify = await fetch(API_BASE + '/api/payment/verify', {
           method:  'POST',
           headers: {
             'Authorization': 'Bearer ' + authToken,
@@ -421,7 +423,9 @@ function onJD(f) {
   nm.textContent = f.name; nm.style.display = 'block';
 }
 function checkReady() {
-  const total = parseInt(document.getElementById('checksPill').textContent) || 0;
+  const pillText = document.getElementById('checksPill').textContent;
+  const isUnlimited = pillText.includes('∞');
+  const total = isUnlimited ? 999 : (parseInt(pillText) || 0);
   document.getElementById('parseBtn').disabled = !resumeFile || total === 0;
 }
 
@@ -459,7 +463,7 @@ async function startParse() {
 
   let data;
   try {
-    const res = await fetch('/api/resume/parse', {
+    const res = await fetch(API_BASE + '/api/resume/parse', {
       method:  'POST',
       headers: { 'Authorization': 'Bearer ' + authToken },
       body:    fd
@@ -485,10 +489,12 @@ async function startParse() {
   parsedData = data;
   removeEl(tid);
 
-  // Decrement UI counter
-  const pill   = document.getElementById('checksPill');
-  const cur    = parseInt(pill.textContent) || 0;
-  updateChecksFromPill(Math.max(0, cur - 1));
+  // Decrement UI counter (skip for unlimited account)
+  const pillText = document.getElementById('checksPill').textContent;
+  if (!pillText.includes('∞')) {
+    const cur = parseInt(pillText) || 0;
+    updateChecksFromPill(Math.max(0, cur - 1));
+  }
 
   const hasJD = jdFile != null;
   const intro = hasJD
