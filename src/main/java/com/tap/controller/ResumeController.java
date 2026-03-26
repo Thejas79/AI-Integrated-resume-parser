@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "https://benevolent-sunburst-76e62d.netlify.app")
 @RestController
 @RequestMapping("/api/resume")
 public class ResumeController {

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "https://benevolent-sunburst-76e62d.netlify.app")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {

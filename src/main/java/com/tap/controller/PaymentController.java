@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.Map;
 
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "https://benevolent-sunburst-76e62d.netlify.app")
 @RestController
 @RequestMapping("/api/payment")
 public class PaymentController {
